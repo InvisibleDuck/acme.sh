@@ -120,15 +120,29 @@ _rm_record() {
   fi
 
   # The API returns: {"success":true,"data":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]}
-  record_id=$(
+	_txt_record_obj=$(
     printf '%s\n' "$response" |
       sed 's/},[ \t]*{/}\n{/g' |
       grep -F "\"name\":\"$full\"" |
-      grep -F "\"$txtvalue\"" |
-      _egrep_o '"id":[0-9]+' |
-      _head_n 1 |
-      cut -d: -f2
-  )
+      grep -F "\"type\":\"TXT\"" |
+      grep -F "\"content\":\"$txtvalue\"" |
+      _head_n 1
+	)
+
+  if [ -z "$_txt_record_obj" ]; then
+    _info "TXT record not found for $full with content $txtvalue"
+    return 0
+  fi
+
+  record_id=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d: -f2)
+
+  # sanity check type
+  record_type=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"type":"[^"]*"' | head -n1 | sed 's/.*:"//;s/"$//')
+
+  if [ "$record_type" != "TXT" ]; then
+    _err "Refusing to delete non-TXT record id=$record_id type=$record_type name=$full"
+    return 1
+  fi
 
   if [ -z "$record_id" ]; then
     _info "Record not found, nothing to remove"
