@@ -120,14 +120,14 @@ _rm_record() {
   fi
 
   # The API returns: {"success":true,"data":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]}
-	_txt_record_obj=$(
+  _txt_record_obj=$(
     printf '%s\n' "$response" |
       sed 's/},[ \t]*{/}\n{/g' |
       grep -F "\"name\":\"$full\"" |
       grep -F "\"type\":\"TXT\"" |
       grep -F "\"content\":\"$txtvalue\"" |
       _head_n 1
-	)
+  )
 
   if [ -z "$_txt_record_obj" ]; then
     _info "TXT record not found for $full with content $txtvalue"
