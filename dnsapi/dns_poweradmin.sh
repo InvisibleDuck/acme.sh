@@ -122,7 +122,8 @@ _rm_record() {
   # The API returns: {"success":true,"data":[{"id":..., "name":"...", "type":"TXT", "content":"...", ...}]}
   _txt_record_obj=$(
     printf '%s\n' "$response" |
-      sed 's/},[ \t]*{/}\n{/g' |
+      sed 's/^.*"data":\[//; s/\],"message":.*$//' |
+      awk '{ gsub(/},{/, "}\n{"); print }' |
       grep -F "\"name\":\"$full\"" |
       grep -F "\"type\":\"TXT\"" |
       grep -F "\"content\":\"$txtvalue\"" |
@@ -134,19 +135,20 @@ _rm_record() {
     return 0
   fi
 
-  record_id=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"id":[0-9][0-9]*' | _head_n 1 | cut -d: -f2)
+  record_id=$(printf '%s\n' "$_txt_record_obj" | sed -n 's/.*"id":\([0-9][0-9]*\).*/\1/p' | _head_n 1)
+  record_type=$(printf '%s\n' "$_txt_record_obj" | sed -n 's/.*"type":"\([^"]*\)".*/\1/p' | _head_n 1)
+  record_name=$(printf '%s\n' "$_txt_record_obj" | sed -n 's/.*"name":"\([^"]*\)".*/\1/p' | _head_n 1)
+  record_content=$(printf '%s\n' "$_txt_record_obj" | sed -n 's/.*"content":"\([^"]*\)".*/\1/p' | _head_n 1)
 
-  # sanity check type
-  record_type=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"type":"[^"]*"' | head -n1 | sed 's/.*:"//;s/"$//')
+  _debug2 "_txt_record_obj=$_txt_record_obj"
+  _debug2 "record id: $record_id"
+  _debug2 "record type: $record_type"
+  _debug2 "record name: $record_name"
+  _debug2 "record content: $record_content"
 
   if [ "$record_type" != "TXT" ]; then
     _err "Refusing to delete non-TXT record id=$record_id type=$record_type name=$full"
     return 1
-  fi
-
-  if [ -z "$record_id" ]; then
-    _info "Record not found, nothing to remove"
-    return 0
   fi
 
   if ! _poweradmin_rest "DELETE" "/api/v${POWERADMIN_API_VERSION}/zones/$_zone_id/records/$record_id"; then
