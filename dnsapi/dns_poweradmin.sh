@@ -134,7 +134,7 @@ _rm_record() {
     return 0
   fi
 
-  record_id=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d: -f2)
+  record_id=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"id":[0-9][0-9]*' | _head_n 1 | cut -d: -f2)
 
   # sanity check type
   record_type=$(printf '%s\n' "$_txt_record_obj" | _egrep_o '"type":"[^"]*"' | head -n1 | sed 's/.*:"//;s/"$//')
@@ -189,7 +189,7 @@ _get_root() {
     )
 
     if [ -n "$zone_obj" ]; then
-      _zone_id=$(printf '%s' "$zone_obj" | _egrep_o '"id":[0-9]+' | _head_n 1 | cut -d: -f2)
+      _zone_id=$(printf '%s' "$zone_obj" | _egrep_o '"id":[0-9][0-9]*' | _head_n 1 | cut -d: -f2)
       _domain="$h"
       _debug "Found zone: $_domain with id: $_zone_id"
       return 0
